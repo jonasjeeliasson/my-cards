@@ -129,6 +129,7 @@ export class MySlider extends LitElement {
 		if (rotate != "0") {
 			rotate = rotate + "deg";
 		}
+		var controlOnlyOn = conf.controlOnlyOn ? conf.controlOnlyOn : false;
 		// Slider Background Color Variables
 		var mainSliderColor = conf.mainSliderColor ? conf.mainSliderColor : "var(--accent-color)";
 		var secondarySliderColor = conf.secondarySliderColor ? conf.secondarySliderColor : "#4d4d4d";
@@ -198,7 +199,7 @@ export class MySlider extends LitElement {
 				if (conf.function == "Warmth") {
 					this._setWarmth(entity, e.target, minSet, maxSet);
 				} else {
-					this._setBrightness(entity, e.target, minSet, maxSet)
+					this._setBrightness(entity, e.target, minSet, maxSet, controlOnlyOn)
 				}
 			} else if (entityId.includes("input_number.")) {
 				this._setInputNumber(entity, e.target, minSet, maxSet)
@@ -366,19 +367,29 @@ export class MySlider extends LitElement {
 	// 	}
 	// }
 	
-	private _setBrightness(_entity, _target, _minSet, _maxSet): void {
+	private _setBrightness(_entity, _target, _minSet, _maxSet, _controlOnlyOn): void {
 		var value = _target.value;
 		if (value > _maxSet) {
 			value = _maxSet;
 		} else if (value < _minSet) {
 			value = _minSet;
 		}
-	
+
+		var entityIds;
+		if (_entity.state === 'on' && _controlOnlyOn === true && Array.isArray(_entity.attributes.entity_id)) {
+			entityIds = _entity.attributes.entity_id
+				.map(entity_id => this.hass.states[`${entity_id}`])
+				.filter(entity => entity.state === 'on')
+				.map(entity => entity.entity_id);
+		} else {
+			entityIds = _entity.entity_id;
+		}
+
 		this.hass.callService("homeassistant", "turn_on", {
-			entity_id: _entity.entity_id,
+			entity_id: entityIds,
 			brightness: value * 2.56
 		});
-	
+
 		_target.value = value;
 	
 	}
